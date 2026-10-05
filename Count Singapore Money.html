@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Count Singapore Money</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#fff8e7;--card:#fff;--ink:#2b2b3a;--accent:#ff7a59;--ok:#2e9e5b;--bad:#d9534f;--line:#f0dfb8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1f2b;--card:#2a2d3e;--ink:#f5f1e6;--accent:#ff8f70;--ok:#5fd18b;--bad:#ff7b77;--line:#444965}}
+:root[data-theme="dark"]{--bg:#1d1f2b;--card:#2a2d3e;--ink:#f5f1e6;--accent:#ff8f70;--ok:#5fd18b;--bad:#ff7b77;--line:#444965}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Baloo 2","Comic Sans MS","Trebuchet MS",system-ui,sans-serif;font-size:20px}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:1.6rem;margin:4px 0 12px;text-align:center}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.tabs button{flex:1 1 40%;font:inherit;font-weight:700;padding:12px;border-radius:16px;border:3px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--card);border:3px solid var(--line);border-radius:22px;padding:16px;margin-bottom:12px}
+.q{text-align:center;font-weight:700;margin:0 0 10px}
+.area{min-height:130px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;padding:8px}
+.money{display:flex;align-items:center;justify-content:center;font-weight:800;color:#222;border:none;font-family:inherit;cursor:default;position:relative}
+.coin{border-radius:50%;box-shadow:inset 0 0 0 4px rgba(0,0,0,.15),0 2px 3px rgba(0,0,0,.3)}
+.c10{width:62px;height:62px;background:#d7dadf;font-size:1rem}
+.c20{width:70px;height:70px;background:#c9ccd3;font-size:1.05rem}
+.c50{width:80px;height:80px;background:#bcc0c8;font-size:1.15rem}
+.c100{width:90px;height:90px;background:#f2c94c;font-size:1.3rem}
+.note{width:120px;height:62px;border-radius:8px;color:#fff;font-size:1.3rem;box-shadow:inset 0 0 0 3px rgba(255,255,255,.4),0 2px 3px rgba(0,0,0,.3)}
+.n200{background:#8e5bb8}.n500{background:#2e9e5b}.n1000{background:#d9534f}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choices button,.act{font:inherit;font-weight:800;font-size:1.3rem;padding:14px;border-radius:16px;border:3px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.choices button:disabled{opacity:.4}
+.act{background:var(--accent);border-color:var(--accent);color:#fff}
+.act.alt{background:var(--card);color:var(--ink);border-color:var(--line)}
+.row{display:flex;gap:10px;justify-content:center;margin-top:10px}
+.msg{min-height:3.2em;text-align:center;font-weight:700;margin:10px 0 0}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+.tray{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.tray button.money{cursor:pointer;background-clip:padding-box}
+.tray button.money:active{transform:scale(.94)}
+.plate{background:repeating-linear-gradient(45deg,transparent 0 10px,rgba(128,128,128,.07) 10px 20px)}
+.stars{text-align:center;font-size:1.3rem;margin-top:4px}
+input{font:inherit;font-size:2rem;font-weight:800;width:9em;max-width:100%;text-align:center;padding:8px;border-radius:16px;border:3px solid var(--line);background:var(--bg);color:var(--ink)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:300px;margin:12px auto 0}
+.pad button{font:inherit;font-weight:800;font-size:1.6rem;padding:12px;border-radius:16px;border:3px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.pad button:active{transform:scale(.94)}
+.target{font-size:2.4rem;color:var(--accent);text-align:center;margin:0}
+</style>
+</head>
+<body>
+<main>
+<h1>🪙 Count the Money!</h1>
+<div class="tabs"><button id="t1" class="on">Count it</button><button id="t2">Make it</button><button id="t3">My amount</button><button id="t4">Free play</button></div>
+<div id="app"></div>
+<div class="stars" id="stars">⭐ 0</div>
+</main>
+<script>
+const D=[{v:10,k:"coin",c:"c10"},{v:20,k:"coin",c:"c20"},{v:50,k:"coin",c:"c50"},{v:100,k:"coin",c:"c100"},{v:200,k:"note",c:"n200"},{v:500,k:"note",c:"n500"},{v:1000,k:"note",c:"n1000"}];
+const fmt=v=>v<100?v+"¢":"$"+(v/100).toFixed(v%100?2:0);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+const money=(d,tag)=>el(tag||"div","money "+d.k+" "+d.c,fmt(d.v));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+let mode=1,stars=0,app=document.getElementById("app");
+function addStar(){stars++;document.getElementById("stars").textContent="⭐ "+stars}
+function setMode(m){mode=m;[t1,t2,t3,t4].forEach((b,i)=>b.className=i+1==m?"on":"");[count,make,custom,free][m-1]()}
+t1.onclick=()=>setMode(1);t2.onclick=()=>setMode(2);t3.onclick=()=>setMode(3);t4.onclick=()=>setMode(4);
+
+function count(){
+  let items=[],tot=0;
+  const n=2+Math.floor(Math.random()*3);
+  for(let i=0;i<n;i++){let d=pick(D);if(tot+d.v>1000)d=D[0];items.push(d);tot+=d.v}
+  items.sort((a,b)=>b.v-a.v);
+  let opts=new Set([tot]);
+  while(opts.size<4){const x=tot+pick([-30,-20,-10,10,20,30,50,-50,100]);if(x>0)opts.add(x)}
+  opts=[...opts].sort(()=>Math.random()-.5);
+  app.innerHTML="";
+  const card=el("div","card");
+  card.append(el("p","q","How much money is here?"));
+  const area=el("div","area");items.forEach(d=>area.append(money(d)));card.append(area);
+  const ch=el("div","choices"),msg=el("p","msg");
+  opts.forEach(o=>{const b=el("button","",fmt(o));b.onclick=()=>{
+    if(o===tot){msg.className="msg ok";msg.textContent="🎉 Yes! That is "+fmt(tot)+"!";ch.querySelectorAll("button").forEach(x=>x.disabled=true);addStar();nx.style.display=""}
+    else{b.disabled=true;let s=0,p=[];items.forEach(d=>{s+=d.v;p.push(fmt(s))});
+      msg.className="msg bad";msg.textContent="Not quite. Count the big money first: "+p.join(" → ")}
+  };ch.append(b)});
+  const nx=el("button","act","Next ➜");nx.style.display="none";nx.onclick=count;
+  card.append(ch,msg);const r=el("div","row");r.append(nx);card.append(r);app.append(card);
+}
+
+function make(fixed){
+  if(typeof fixed!=="number")fixed=0;
+  const target=fixed||(1+Math.floor(Math.random()*40))*10;
+  let plate=[];
+  app.innerHTML="";
+  const top=el("div","card");top.append(el("p","q","Make this much money:"),el("p","target",fmt(target)));
+  const pc=el("div","card plate");pc.append(el("p","q","Your pile (tap money to take it away)"));
+  const area=el("div","area"),msg=el("p","msg");pc.append(area,msg);
+  const tc=el("div","card");tc.append(el("p","q","Tap to add money"));
+  const tray=el("div","tray");
+  const sum=()=>plate.reduce((a,d)=>a+d.v,0);
+  function draw(){area.innerHTML="";plate.forEach((d,i)=>{const m=money(d,"button");m.onclick=()=>{plate.splice(i,1);msg.textContent="";draw()};area.append(m)})}
+  D.forEach(d=>{const m=money(d,"button");m.onclick=()=>{plate.push(d);plate.sort((a,b)=>b.v-a.v);msg.textContent="";draw()};tray.append(m)});
+  tc.append(tray);
+  const r=el("div","row"),chk=el("button","act","Check ✓"),clr=el("button","act alt","Clear"),nx=el("button","act",fixed?"New amount ➜":"Next ➜");
+  nx.style.display="none";
+  chk.onclick=()=>{const s=sum();
+    if(s===target){msg.className="msg ok";msg.textContent="🎉 You made "+fmt(target)+"!";addStar();chk.style.display="none";clr.style.display="none";nx.style.display=""}
+    else if(!s){msg.className="msg bad";msg.textContent="Tap some money to add it to your pile."}
+    else if(s<target){msg.className="msg bad";msg.textContent="Not enough yet. You have "+fmt(s)+". Add more!"}
+    else{msg.className="msg bad";msg.textContent="Too much! You have "+fmt(s)+". Tap a coin to take it away."}};
+  clr.onclick=()=>{plate=[];msg.textContent="";draw()};
+  nx.onclick=fixed?custom:make;
+  r.append(chk,clr,nx);pc.append(r);
+  app.append(top,pc,tc);draw();
+}
+function custom(){
+  app.innerHTML="";
+  const c=el("div","card");
+  c.append(el("p","q","Type how much money you want to make"),el("p","q","(in dollars, like 1.50 or 0.70)"));
+  const w=el("div","row"),i=el("input");i.readOnly=true;i.inputMode="none";i.placeholder="$ 0.00";w.append(i);
+  const msg=el("p","msg bad"),r=el("div","row"),go=el("button","act","Go ➜");r.append(go);
+  const run=()=>{const v=Math.round(parseFloat(i.value.replace("$",""))*100);
+    if(!v||v<=0)msg.textContent="Type a number, like 1.50";
+    else if(v%10)msg.textContent="Our smallest money is 10¢. Try 0.10, 0.20 ...";
+    else if(v>5000)msg.textContent="Try a smaller amount, up to $50.";
+    else make(v)};
+  go.onclick=run;i.onkeydown=e=>{if(e.key==="Enter")run()};
+  const pad=el("div","pad");
+  ["1","2","3","4","5","6","7","8","9",".","0","⌫"].forEach(k=>{
+    const b=el("button","",k);
+    b.onclick=()=>{let v=i.value;msg.textContent="";
+      if(k==="⌫")v=v.slice(0,-1);
+      else if(k==="."){if(!v.includes("."))v=(v||"0")+"."}
+      else if(v.length<6&&!(v.includes(".")&&v.split(".")[1].length>=2))v+=k;
+      i.value=v};
+    pad.append(b)});
+  c.append(w,pad,msg,r);app.append(c);
+}
+
+function free(){
+  let plate=[];app.innerHTML="";
+  const top=el("div","card");top.append(el("p","q","Your total is:"));
+  const tot=el("p","target","0¢");top.append(tot);
+  const pc=el("div","card plate");pc.append(el("p","q","Your pile (tap money to take it away)"));
+  const area=el("div","area");pc.append(area);
+  const tc=el("div","card");tc.append(el("p","q","Tap any money to add it"));
+  const tray=el("div","tray");
+  function draw(){area.innerHTML="";plate.forEach((d,i)=>{const m=money(d,"button");m.onclick=()=>{plate.splice(i,1);draw()};area.append(m)});tot.textContent=fmt(plate.reduce((a,d)=>a+d.v,0))}
+  D.forEach(d=>{const m=money(d,"button");m.onclick=()=>{plate.push(d);plate.sort((a,b)=>b.v-a.v);draw()};tray.append(m)});
+  tc.append(tray);
+  const r=el("div","row"),clr=el("button","act alt","Clear all");clr.onclick=()=>{plate=[];draw()};r.append(clr);pc.append(r);
+  app.append(top,pc,tc);draw();
+}
+count();
+</script>
+</body>
+</html>
